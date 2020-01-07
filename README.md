@@ -8,4 +8,5 @@ As the numerical reconstruction process from the phase profile to complex wavefr
 With the gradient, the phase profile is updated by gradient descent algorithm.
 Unlike the GS algorithm and double-phase encoding method, the work can achieve the hologram which can reconstruct complex wavefront with high image quality.
 
-
+# Acknowledgements
+Several function codes (square-grid, fft, ifft) in util borrows from [deepoptics] (https://github.com/vsitzmann/deepoptics). 
