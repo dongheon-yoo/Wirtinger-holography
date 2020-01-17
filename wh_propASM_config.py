@@ -5,6 +5,8 @@ P. Chakravarthula et al., "Wirtinger Holography for Near-Eye Displays",
 SIGGRAPH ASIA, ACM TOG, 2019
 
 by Dongheon Yoo
+Optical Engineering and Quantum Electronics Laboratory,
+Seoul National University, Korea.
 
 Optimizing phase hologram via gradient descent algorithm
 Use Tensorflow 2.0
