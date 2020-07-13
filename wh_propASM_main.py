@@ -67,10 +67,9 @@ def main():
     # Prepad the image
     theta = np.arcsin(wavelength / (2 * pp))
     padSize = np.abs(z_prop) * np.tan(theta)
-    padN = int(np.ceil(padSize / pp))
+    padN = int(np.floor(np.ceil(padSize / pp) / 2) * 2)
     oh, ow = (slm_h - 2 * padN), (slm_w - 2 * padN)
     test_im = cv2.resize(test_im, (oh, ow))
-    test_im = np.clip(test_im, 0.0, 1.0)
     test_im = np.pad(test_im, ((padN, padN), (padN, padN)), mode = 'constant')
 
     # For tensorflow application, we should use 4-dimensional image
