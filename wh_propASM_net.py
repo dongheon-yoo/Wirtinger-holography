@@ -40,7 +40,7 @@ class Deinterleave(layers.Layer):
     def call(self, input_tensor):
         return tf.compat.v1.depth_to_space(input_tensor, self.rate, name = self.l_name)
 
-class ASM2_propagation(layers.Layer):
+class ASM_propagation(layers.Layer):
     def __init__(self,
                  prop_distance,
                  pixel_pitch,
@@ -54,14 +54,16 @@ class ASM2_propagation(layers.Layer):
         self.wl = wavelength
 
         # Set zero padding size
-        self.padH = int(np.ceil(self.slm_h / 2))
-        self.padW = int(np.ceil(self.slm_w / 2))
+        theta = np.arcsin(self.wl / (2 * self.pp))
+        padLength = np.tan(theta) * self.z
+        self.padH = int(np.floor(np.round(padLength / self.pp) / 2) * 2)
+        self.padW = self.padH
 
         # Set Spatial Frequency Domain
         T = 1 / self.pp
         oh, ow = (self.slm_h + 2 * self.padH), (self.slm_w + 2 * self.padW)
         dfy, dfx = T / oh, T / ow
-        self.fx_grid, self.fy_grid = util.square_grid([oh, ow], dfy)
+        self.fx_grid, self.fy_grid = util.square_grid([oh, ow], [dfy, dfx])
 
     def call(self, field):
         # Zero pad the input field
