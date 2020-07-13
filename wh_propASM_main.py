@@ -57,9 +57,9 @@ def main():
 
     # Target image read
     test_name = os.path.join(os.getcwd(), '0076.png')
-    test_im = cv2.imread(test_name, cv2.IMREAD_COLOR)
-    test_im = test_im[:, :, [0]]
+    test_im = cv2.imread(test_name, cv2.IMREAD_GRAYSCALE)
     test_im = cv2.normalize(test_im.astype(np.float32), None, 0.0, 1.0, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1)
+    test_im = np.clip(test_im, 0.0, 1.0)
     height, width = test_im.shape
     if height != width:
         im_size = np.minimum(height, width)
@@ -84,7 +84,8 @@ def main():
     train_psnr_results = []
 
     # Initial phase profile (random phase or double phase encoded phase)
-    init_field = Net.ASM2_propagation(-z_prop, pp, wavelength)(tf.dtypes.cast(tf.math.sqrt(test_im), tf.complex64))
+    # Initial phase of target image plane should be small compared to 2 * pi.
+    init_field = Net.ASM_propagation(-z_prop, pp, wavelength)(tf.dtypes.cast(tf.math.sqrt(test_im), tf.complex64))
     init_dp = Net.encode_double_phase(init_field)
 
     # Phase variable for optimization
@@ -107,10 +108,9 @@ def main():
             I_tcrop = im_temp[:, padN : padN + oh, padN : padN + ow, :]
 
             # For holographic image comparison, mean value of reconstructed image should be set to be the mean value of target image
-            I_rcrop = I_rcrop - tf.math.reduce_mean(I_rcrop, axis = [1, 2], keepdims=True) + np.mean(I_tcrop, axis = (1, 2), keepdims = True)
-            I_r = I_r - tf.math.reduce_mean(I_r, axis=[1, 2], keepdims=True) + np.mean(im_temp, axis = (1, 2), keepdims = True)
+            I_rcrop = I_rcrop / tf.math.reduce_mean(I_rcrop, axis = [1, 2], keepdims = True) * np.mean(I_tcrop, axis = (1, 2), keeepdims = True)
+            I_r = I_r / tf.math.reduce_mean(I_r, axis=[1, 2], keepdims=True) * np.mean(im_temp, axis = (1, 2), keepdims = True)
             I_rcrop = tf.clip_by_value(I_rcrop, 0.0, 1.0)
-            I_r = tf.clip_by_value(I_r, 0.0, 1.0)
 
             # Plot phase profile
             phase_var_np = np.angle(np.exp(1.j * phase_var.numpy()))
@@ -123,6 +123,7 @@ def main():
 
             # Plot reconstructed image
             I_r_np = I_r.numpy()
+            I_r_np = np.clip(I_r_np, 0.0, 1.0)
             I_r_np = I_r_np[0, ...]
             I_r_np_crop = I_r_np[padN : padN + oh, padN : padN + ow, :]
             I_r_name = "recon_epoch_{:03d}.png".format(epoch)
@@ -130,8 +131,8 @@ def main():
             cv2.imwrite(I_r_name, np.uint8(I_r_np_crop * 255))
 
             # Compute gradient (dI / dphi) based on Wirtinger derivative
-            delta_f = 2 * tf.dtypes.cast((I_r - im_temp), dtype = tf.complex64) * 2 * recon
-            delta = Net.ASM2_propagation(-z_prop, pp, wavelength)(delta_f)
+            delta_f = 2 * tf.dtypes.cast((I_r - im_temp), dtype = tf.complex64) * 2 * recon / slm_h / slm_w
+            delta = Net.ASM_propagation(-z_prop, pp, wavelength)(delta_f)
             recon_grad = -1.j * tf.math.exp(-1.j * tf.dtypes.cast(phase_var, dtype = tf.complex64)) * delta
             recon_const = tf.math.real(recon_grad)
 
