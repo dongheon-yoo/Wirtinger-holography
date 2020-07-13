@@ -13,6 +13,7 @@ Use Tensorflow 2.0
 """
 
 import os
+import shutil
 import numpy as np
 import math
 import tensorflow as tf
@@ -29,7 +30,7 @@ def make_dir(path, overwrite=False):
     if not os.path.exists(path):
         os.mkdir(path)
     elif os.path.exists(path) and overwrite:
-        os.remove(path)
+        shutil.rmtree(path)
         os.mkdir(path)
 
 def load_and_preprocess_train(train_path):
@@ -43,9 +44,9 @@ def load_and_preprocess_train(train_path):
     z = PARAM.get('PROPAGATION_DISTANCE')
 
     # Read single color image
-    im_gray = cv2.imread(rgb_name, cv2.IMREAD_COLOR)
-    im_gray = im_gray[:, :, [0]]
+    im_gray = cv2.imread(rgb_name, cv2.IMREAD_GRAYSCALE)
     im_gray = cv2.normalize(im_gray.astype(np.float32), None, 0.0, 1.0, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1)
+    im_gray = np.clip(im_gray, 0., 1.)
     height, width = im_gray.shape
     if height != width:
         im_size = np.minimum(height, width)
@@ -54,10 +55,9 @@ def load_and_preprocess_train(train_path):
     # Pre-pad array
     theta = np.arcsin(wl / (2 * pp))
     padSize = np.abs(z) * np.tan(theta)
-    padN = int(np.ceil(padSize / pp))
+    padN = int(np.floor(np.ceil(padSize / pp) / 2) * 2)
     oh, ow = (slm_h - 2 * padN), (slm_w - 2 * padN)
     im_gray = cv2.resize(im_gray, (oh, ow))
-    im_gray = np.clip(im_gray, 0.0, 1.0)
     im_gray = np.pad(im_gray, ((padN, padN), (padN, padN)), mode = 'constant')
     im_gray = im_gray[:, :, np.newaxis]
 
@@ -146,8 +146,7 @@ def square_grid(resolution, physical_pitch, dtype = np.float32):
     y_grid : shape of [1, height, width, 1]
     """
     height, width = resolution
-    pitch_y = physical_pitch
-    pitch_x = pitch_y
+    pitch_y, pitch_x = physical_pitch
     x_vector = np.linspace(- width / 2, width / 2, num = width, endpoint = False) * pitch_x
     y_vector = np.linspace(- height / 2, height / 2, num = height, endpoint = False) * pitch_y
     x_grid, y_grid = np.meshgrid(x_vector.astype(dtype), y_vector.astype(dtype))
