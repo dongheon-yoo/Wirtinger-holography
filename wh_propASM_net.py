@@ -55,7 +55,7 @@ class ASM_propagation(layers.Layer):
 
         # Set zero padding size
         theta = np.arcsin(self.wl / (2 * self.pp))
-        padLength = np.tan(theta) * self.z
+        padLength = np.tan(theta) * np.abs(self.z)
         self.padH = int(np.floor(np.round(padLength / self.pp) / 2) * 2)
         self.padW = self.padH
 
